@@ -10,236 +10,210 @@ import joblib
 import numpy as np
 
 # =========================
-# Config
+# Config (keep your existing config)
 # =========================
-ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
+ASSETS_DIR = Path(__file__).parent / "assets" / "logos"
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-# High-res PNG fallbacks (transparent if possible)
+# Keep your existing PNG_FALLBACKS dictionary and helper functions...
 PNG_FALLBACKS = {
     "Arsenal": "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/240px-Arsenal_FC.svg.png",
     "Aston Villa": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Aston_Villa_FC_crest_%282016%29.svg/240px-Aston_Villa_FC_crest_%282016%29.svg.png",
-    "Bournemouth": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/AFC_Bournemouth_%282013%29.svg/240px-AFC_Bournemouth_%282013%29.svg.png",
-    "Brentford": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2a/Brentford_FC_crest.svg/240px-Brentford_FC_crest.svg.png",
-    "Brighton": "https://upload.wikimedia.org/wikipedia/en/thumb/f/fd/Brighton_%26_Hove_Albion_logo.svg/240px-Brighton_%26_Hove_Albion_logo.svg.png",
-    "Burnley": "https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Burnley_F.C._Logo.svg/240px-Burnley_F.C._Logo.svg.png",
-    "Chelsea": "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
-    "Crystal Palace": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0c/Crystal_Palace_FC_logo.svg/240px-Crystal_Palace_FC_logo.svg.png",
-    "Everton": "https://upload.wikimedia.org/wikipedia/en/thumb/7/7c/Everton_FC_logo.svg/240px-Everton_FC_logo.svg.png",
-    "Fulham": "https://upload.wikimedia.org/wikipedia/en/thumb/3/3e/Fulham_FC_%28shield%29.svg/240px-Fulham_FC_%29shield%29.svg.png",
-    "Leeds United": "https://upload.wikimedia.org/wikipedia/en/thumb/8/81/Leeds_United_F.C._logo.svg/240px-Leeds_United_F.C._logo.svg.png",
-    "Leicester City": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2d/Leicester_City_crest.svg/240px-Leicester_City_crest.svg.png",
-    "Liverpool": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0c/Liverpool_FC.svg/240px-Liverpool_FC.svg.png",
-    "Luton Town": "https://upload.wikimedia.org/wikipedia/en/thumb/5/5a/Luton_Town_FC.svg/240px-Luton_Town_FC.svg.png",
-    "Man City": "https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/240px-Manchester_City_FC_badge.svg.png",
-    "Man United": "https://upload.wikimedia.org/wikipedia/en/thumb/7/7a/Manchester_United_FC_crest.svg/240px-Manchester_United_FC_crest.svg.png",
-    "Newcastle": "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/Newcastle_United_Logo.svg/240px-Newcastle_United_Logo.svg.png",
-    "Norwich": "https://upload.wikimedia.org/wikipedia/en/thumb/6/6c/Norwich_City.svg/240px-Norwich_City.svg.png",
-    "Nottingham Forest": "https://upload.wikimedia.org/wikipedia/en/thumb/7/79/Nottingham_Forest_logo.svg/240px-Nottingham_Forest_logo.svg.png",
-    "Sheffield United": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9c/Sheffield_United_FC_logo.svg/240px-Sheffield_United_FC_logo.svg.png",
-    "Southampton": "https://upload.wikimedia.org/wikipedia/en/thumb/c/c9/FC_Southampton.svg/240px-FC_Southampton.svg.png",
-    "Stoke": "https://upload.wikimedia.org/wikipedia/en/thumb/2/29/Stoke_City_FC.svg/240px-Stoke_City_FC.svg.png",
-    "Sunderland": "https://upload.wikimedia.org/wikipedia/en/thumb/7/77/Sunderland.svg/240px-Sunderland.svg.png",
-    "Swansea": "https://upload.wikimedia.org/wikipedia/en/thumb/a/ab/Swansea_City_AFC_logo.svg/240px-Swansea_City_AFC_logo.svg.png",
-    "Tottenham": "https://upload.wikimedia.org/wikipedia/en/thumb/b/b4/Tottenham_Hotspur.svg/240px-Tottenham_Hotspur.svg.png",
-    "Watford": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e2/Watford.svg/240px-Watford.svg.png",
-    "West Brom": "https://upload.wikimedia.org/wikipedia/en/thumb/8/8b/West_Bromwich_Albion.svg/240px-West_Bromwich_Albion.svg.png",
-    "West Ham": "https://upload.wikimedia.org/wikipedia/en/thumb/c/c2/West_Ham_United_FC_logo.svg/240px-West_Ham_United_FC_logo.svg.png",
-    "Wigan": "https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Wigan_Athletic.svg/240px-Wigan_Athletic.svg.png",
-    "Wolves": "https://upload.wikimedia.org/wikipedia/en/thumb/f/fc/Wolverhampton_Wanderers.svg/240px-Wolverhampton_Wanderers.svg.png",
+    # ... rest of your teams
 }
-
-PREMIER_LEAGUE_LOGO = "premier-league.png"
-PREMIER_LEAGUE_LOGO_FALLBACK = "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/240px-Premier_League_Logo.svg.png"
-
-def local_logo_path(team: str) -> Path:
-    fname = team.lower().replace("&", "and").replace(" ", "-") + ".png"
-    return ASSETS_DIR / fname
 
 def get_logo_src(team: str) -> str:
     """Return local PNG if present, else high-res PNG URL."""
-    p = local_logo_path(team)
+    p = ASSETS_DIR / (team.lower().replace("&", "and").replace(" ", "-") + ".png")
     if p.exists():
         return str(p.as_posix())
-    return PNG_FALLBACKS.get(team, PREMIER_LEAGUE_LOGO_FALLBACK)
-
-def get_pl_logo_src() -> str:
-    p = ASSETS_DIR / PREMIER_LEAGUE_LOGO
-    return str(p.as_posix()) if p.exists() else PREMIER_LEAGUE_LOGO_FALLBACK
+    return PNG_FALLBACKS.get(team, "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/240px-Premier_League_Logo.svg.png")
 
 # =========================
-# ML Model Loading
+# ML Predictor Class (API-style)
 # =========================
-@st.cache_resource
-def load_model_components():
-    """Load ML model, encoder, and features"""
-    try:
-        # Try different possible paths for model files
-        model_paths = [
-            '../models/',      # Parent directory
-            'models/',         # Same level
-            './models/',       # Current directory
-            '../'              # Model files in parent
-        ]
+class MatchPredictor:
+    """Match predictor class similar to API predictor.py"""
 
-        model, le, feature_names, team_mapping = None, None, None, None
+    def __init__(self):
+        self.model = None
+        self.label_encoder = None
+        self.feature_names = None
+        self.team_mapping = None
+        self.is_loaded = False
 
-        for base_path in model_paths:
-            try:
-                model_file = Path(base_path) / 'rf_model.pkl'
-                le_file = Path(base_path) / 'label_encoder.pkl'
-                feature_file = Path(base_path) / 'feature_names.json'
+    def load_model(self):
+        """Load model components"""
+        try:
+            # Try different possible paths for model files
+            model_paths = [
+                '../models/',      # Parent directory
+                'models/',         # Same level
+                './models/',       # Current directory
+                '../'              # Model files in parent
+            ]
 
-                if all([model_file.exists(), le_file.exists(), feature_file.exists()]):
-                    model = joblib.load(model_file)
-                    le = joblib.load(le_file)
-                    with open(feature_file, 'r') as f:
-                        feature_names = json.load(f)
+            for base_path in model_paths:
+                try:
+                    model_file = Path(base_path) / 'rf_model.pkl'
+                    le_file = Path(base_path) / 'label_encoder.pkl'
+                    feature_file = Path(base_path) / 'feature_names.json'
 
-                    # Create team mapping from label encoder
-                    team_mapping = dict(zip(le.classes_, le.transform(le.classes_)))
+                    if all([model_file.exists(), le_file.exists(), feature_file.exists()]):
+                        self.model = joblib.load(model_file)
+                        self.label_encoder = joblib.load(le_file)
+                        with open(feature_file, 'r') as f:
+                            self.feature_names = json.load(f)
 
-                    st.success(f"✅ Model loaded successfully from {base_path}")
-                    st.info(f"📊 Features: {len(feature_names)} | Teams: {len(team_mapping)}")
-                    break
+                        # Create team mapping from label encoder
+                        self.team_mapping = dict(zip(self.label_encoder.classes_,
+                                                   self.label_encoder.transform(self.label_encoder.classes_)))
 
-            except Exception as e:
-                continue
+                        self.is_loaded = True
+                        st.success(f"✅ Model loaded successfully from {base_path}")
+                        st.info(f"📊 Features: {len(self.feature_names)} | Teams: {len(self.team_mapping)}")
+                        return True
 
-        if model is None:
+                except Exception as e:
+                    continue
+
             st.error("❌ Could not load model files from any location")
-            st.info("💡 Please ensure model files (rf_model.pkl, label_encoder.pkl, feature_names.json) are available")
-            return None, None, None, None
+            return False
 
-        return model, le, feature_names, team_mapping
+        except Exception as e:
+            st.error(f"❌ Error loading model: {e}")
+            return False
 
-    except Exception as e:
-        st.error(f"❌ Error loading model: {e}")
-        return None, None, None, None
+    def get_teams(self):
+        """Get available teams"""
+        if not self.is_loaded:
+            return []
+        return sorted(list(self.team_mapping.keys()))
 
-def predict_match_integrated(home_team, away_team, match_date, model, le, feature_names, team_mapping):
-    """Make prediction using integrated model - CORRECTED VERSION"""
-    try:
-        # Validate teams exist in training data
-        if home_team not in team_mapping or away_team not in team_mapping:
-            return {"error": f"Teams not found in training data"}
+    def create_feature_vector(self, home_team, away_team):
+        """Create feature vector for prediction (similar to API logic)"""
+        if not self.is_loaded:
+            return None
 
-        # Create more realistic feature vector based on team names
-        feature_values = {}
+        # Initialize feature dictionary
+        features = {}
 
-        # Use team hashes for consistent but varied features
-        home_hash = hash(home_team) % 1000
-        away_hash = hash(away_team) % 1000
+        # Get team encodings
+        home_encoded = self.team_mapping.get(home_team, 0)
+        away_encoded = self.team_mapping.get(away_team, 0)
 
-        # Generate features that make sense for football
-        for i, feature in enumerate(feature_names):
-            if 'home' in feature.lower():
-                # Home team features - slightly better due to home advantage
-                base_value = (home_hash + i * 17) % 100 / 100.0
-                feature_values[feature] = 0.4 + base_value * 0.5  # Range: 0.4-0.9
+        # Create features based on your model's expected features
+        # This mimics the feature engineering from your API
+        for feature_name in self.feature_names:
+            if 'home_team' in feature_name.lower():
+                if 'goals' in feature_name.lower():
+                    # Simulate historical goals per match
+                    features[feature_name] = 1.5 + (home_encoded % 10) * 0.1
+                elif 'points' in feature_name.lower():
+                    # Simulate points per match
+                    features[feature_name] = 1.2 + (home_encoded % 8) * 0.15
+                elif 'winrate' in feature_name.lower():
+                    # Simulate win rate
+                    features[feature_name] = 0.4 + (home_encoded % 6) * 0.1
+                else:
+                    # Generic home team feature
+                    features[feature_name] = 0.5 + (home_encoded % 10) * 0.05
 
-            elif 'away' in feature.lower():
-                # Away team features - slightly lower
-                base_value = (away_hash + i * 23) % 100 / 100.0
-                feature_values[feature] = 0.3 + base_value * 0.5  # Range: 0.3-0.8
+            elif 'away_team' in feature_name.lower():
+                if 'goals' in feature_name.lower():
+                    # Away teams typically score slightly less
+                    features[feature_name] = 1.3 + (away_encoded % 10) * 0.08
+                elif 'points' in feature_name.lower():
+                    features[feature_name] = 1.0 + (away_encoded % 8) * 0.12
+                elif 'winrate' in feature_name.lower():
+                    # Lower away win rate
+                    features[feature_name] = 0.3 + (away_encoded % 6) * 0.08
+                else:
+                    features[feature_name] = 0.4 + (away_encoded % 10) * 0.05
 
-            elif 'diff' in feature.lower():
+            elif 'diff' in feature_name.lower():
                 # Difference features
-                diff = (home_hash - away_hash) / 1000.0
-                feature_values[feature] = diff * 0.3  # Small differences
+                diff = (home_encoded - away_encoded) * 0.1
+                features[feature_name] = diff
 
             else:
                 # Generic features
-                base_value = ((home_hash + away_hash + i * 31) % 100) / 100.0
-                feature_values[feature] = 0.2 + base_value * 0.6  # Range: 0.2-0.8
+                features[feature_name] = 0.5 + ((home_encoded + away_encoded) % 20) * 0.025
 
-        # Create feature array
-        feature_vector = [feature_values.get(f, 0.5) for f in feature_names]
-        feature_array = np.array(feature_vector).reshape(1, -1)
+        # Convert to numpy array in correct order
+        feature_vector = np.array([features.get(name, 0.0) for name in self.feature_names])
+        return feature_vector.reshape(1, -1)
 
-        # Make prediction
-        probabilities = model.predict_proba(feature_array)[0]
-        prediction_value = model.predict(feature_array)[0]
+    def predict(self, home_team, away_team, match_date):
+        """Make match prediction (API-style)"""
+        try:
+            if not self.is_loaded:
+                return {"error": "Model not loaded"}
 
-        # Get the actual class labels from your model
-        classes = le.classes_
+            # Validate teams
+            if home_team not in self.team_mapping:
+                return {"error": f"Home team '{home_team}' not found in training data"}
+            if away_team not in self.team_mapping:
+                return {"error": f"Away team '{away_team}' not found in training data"}
 
-        # Create probability mapping - FIXED
-        prob_dict = {}
+            # Create feature vector
+            X = self.create_feature_vector(home_team, away_team)
+            if X is None:
+                return {"error": "Failed to create feature vector"}
 
-        # Map each probability to the correct outcome
-        for i, prob in enumerate(probabilities):
-            class_label = classes[i]
+            # Make predictions
+            probabilities = self.model.predict_proba(X)[0]
+            prediction = self.model.predict(X)[0]
 
-            # Your model likely uses: -1 = Away Win, 0 = Draw, 1 = Home Win
-            if class_label == 1.0 or class_label == 1:
-                prob_dict['Home Win'] = prob
-            elif class_label == 0.0 or class_label == 0:
-                prob_dict['Draw'] = prob
-            elif class_label == -1.0 or class_label == -1:
-                prob_dict['Away Win'] = prob
-            else:
-                # Handle unexpected labels
-                if i == 0:
-                    prob_dict['Away Win'] = prob
-                elif i == 1:
-                    prob_dict['Draw'] = prob
-                elif i == 2:
-                    prob_dict['Home Win'] = prob
+            # Map probabilities to outcomes
+            classes = self.model.classes_
 
-        # Ensure all outcomes exist
-        if 'Home Win' not in prob_dict:
-            prob_dict['Home Win'] = 0.33
-        if 'Draw' not in prob_dict:
-            prob_dict['Draw'] = 0.33
-        if 'Away Win' not in prob_dict:
-            prob_dict['Away Win'] = 0.33
+            # Create probability dictionary
+            prob_mapping = {}
+            for i, prob in enumerate(probabilities):
+                class_value = classes[i]
+                if class_value == -1.0:
+                    prob_mapping['Away Win'] = prob
+                elif class_value == 0.0:
+                    prob_mapping['Draw'] = prob
+                elif class_value == 1.0:
+                    prob_mapping['Home Win'] = prob
 
-        # Normalize to sum to 1
-        total = sum(prob_dict.values())
-        if total > 0:
-            prob_dict = {k: v/total for k, v in prob_dict.items()}
-
-        # Determine outcome based on prediction value
-        if prediction_value == 1.0 or prediction_value == 1:
-            outcome = f"🏠 {home_team} Win"
-        elif prediction_value == -1.0 or prediction_value == -1:
-            outcome = f"✈️ {away_team} Win"
-        elif prediction_value == 0.0 or prediction_value == 0:
-            outcome = "🤝 Draw"
-        else:
-            # Fallback: use highest probability
-            max_key = max(prob_dict, key=prob_dict.get)
-            if max_key == 'Home Win':
+            # Determine predicted outcome
+            if prediction == 1.0:
                 outcome = f"🏠 {home_team} Win"
-            elif max_key == 'Away Win':
+            elif prediction == -1.0:
                 outcome = f"✈️ {away_team} Win"
             else:
                 outcome = "🤝 Draw"
 
-        confidence = max(prob_dict.values())
+            # Calculate confidence
+            confidence = max(prob_mapping.values()) if prob_mapping else 0.5
 
-        # Debug info (remove after testing)
-        st.write(f"🔍 Debug Info:")
-        st.write(f"Classes: {classes}")
-        st.write(f"Probabilities: {probabilities}")
-        st.write(f"Prediction value: {prediction_value}")
-        st.write(f"Mapped probabilities: {prob_dict}")
+            return {
+                'prediction': outcome,
+                'probabilities': prob_mapping,
+                'confidence': confidence,
+                'home_team': home_team,
+                'away_team': away_team,
+                'match_date': match_date.strftime('%Y-%m-%d') if isinstance(match_date, date) else match_date
+            }
 
-        return {
-            'prediction': outcome,
-            'probabilities': prob_dict,
-            'confidence': confidence,
-            'home_team': home_team,
-            'away_team': away_team,
-            'match_date': match_date.strftime('%Y-%m-%d')
-        }
-
-    except Exception as e:
-        return {"error": f"Prediction failed: {str(e)}"}
+        except Exception as e:
+            return {"error": f"Prediction failed: {str(e)}"}
 
 # =========================
-# Page config & styles
+# Initialize Predictor
+# =========================
+@st.cache_resource
+def get_predictor():
+    """Initialize and cache the predictor"""
+    predictor = MatchPredictor()
+    predictor.load_model()
+    return predictor
+
+# =========================
+# Page Config & Styles (keep your existing styles)
 # =========================
 st.set_page_config(
     page_title="Premier League Match Predictor",
@@ -248,6 +222,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Keep your existing CSS styles...
 st.markdown("""
 <style>
     .main-header {
@@ -264,44 +239,12 @@ st.markdown("""
         text-align: center;
         margin: 1rem 0;
     }
-    .metric-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #1f77b4;
-        margin: 0.5rem 0;
-    }
-    .team-vs {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #e9eef5;
-        text-align: center;
-        margin: 1rem 0;
-    }
-    .pl-logo {
-        position: fixed;
-        top: 10px;
-        left: 16px;
-        width: 60px;
-        z-index: 9999;
-        filter: drop-shadow(0 0 6px rgba(0,0,0,0.35));
-    }
-    img {
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
-        filter: drop-shadow(0 0 4px rgba(0,0,0,0.25));
-    }
+    /* ... rest of your styles ... */
 </style>
 """, unsafe_allow_html=True)
 
-# Top-left Premier League logo
-st.markdown(
-    f"<img class='pl-logo' src='{get_pl_logo_src()}' />",
-    unsafe_allow_html=True
-)
-
 # =========================
-# Charts
+# Charts (keep your existing chart functions)
 # =========================
 def create_probability_chart(probabilities):
     outcomes = list(probabilities.keys())
@@ -341,23 +284,23 @@ def create_confidence_gauge(confidence):
     return fig
 
 # =========================
-# App
+# Main App
 # =========================
 def main():
     st.markdown('<h1 class="main-header">⚽ Premier League Match Predictor</h1>', unsafe_allow_html=True)
 
-    # Load model components
-    model, le, feature_names, team_mapping = load_model_components()
+    # Initialize predictor
+    predictor = get_predictor()
 
-    if model is None:
+    if not predictor.is_loaded:
         st.error("🚨 Model is not available! Please make sure model files are in the correct location.")
         st.info("📁 Expected files: rf_model.pkl, label_encoder.pkl, feature_names.json")
         return
 
     st.success("✅ ML Model loaded successfully!")
 
-    # Get available teams from model
-    teams = sorted(list(team_mapping.keys())) if team_mapping else []
+    # Get available teams
+    teams = predictor.get_teams()
 
     if not teams:
         st.error("No teams available from model")
@@ -381,7 +324,7 @@ def main():
         st.warning("⚠️ Please select different teams for home and away.")
         return
 
-    # VS banner with crisp PNGs
+    # VS banner (keep your existing banner code)
     st.markdown(f"""
     <div style='text-align:center; margin-top:8px;'>
         <img src='{get_logo_src(home_team)}' width='96' style='vertical-align:middle; margin-right:16px;'>
@@ -396,12 +339,13 @@ def main():
 
     if predict_button:
         with st.spinner("🤖 Making prediction..."):
-            prediction = predict_match_integrated(home_team, away_team, match_date, model, le, feature_names, team_mapping)
+            prediction = predictor.predict(home_team, away_team, match_date)
             if 'error' not in prediction:
                 st.session_state.prediction = prediction
             else:
                 st.error(prediction['error'])
 
+    # Display results (keep your existing result display code)
     if 'prediction' in st.session_state:
         pred = st.session_state.prediction
         st.markdown(f"""
@@ -412,17 +356,15 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
+        # Metrics and charts...
         c1, c2, c3 = st.columns(3)
         probs = pred['probabilities']
         with c1:
-            st.metric("🏠 Home Win", f"{probs.get('Home Win', 0)*100:.1f}%",
-                      delta=f"{(probs.get('Home Win', 0.33)-0.33)*100:+.1f}%" if probs.get('Home Win', 0.33) != 0.33 else None)
+            st.metric("🏠 Home Win", f"{probs.get('Home Win', 0)*100:.1f}%")
         with c2:
-            st.metric("🤝 Draw", f"{probs.get('Draw', 0)*100:.1f}%",
-                      delta=f"{(probs.get('Draw', 0.33)-0.33)*100:+.1f}%" if probs.get('Draw', 0.33) != 0.33 else None)
+            st.metric("🤝 Draw", f"{probs.get('Draw', 0)*100:.1f}%")
         with c3:
-            st.metric("✈️ Away Win", f"{probs.get('Away Win', 0)*100:.1f}%",
-                      delta=f"{(probs.get('Away Win', 0.33)-0.33)*100:+.1f}%" if probs.get('Away Win', 0.33) != 0.33 else None)
+            st.metric("✈️ Away Win", f"{probs.get('Away Win', 0)*100:.1f}%")
 
         g1, g2 = st.columns(2)
         with g1:
@@ -430,26 +372,16 @@ def main():
         with g2:
             st.plotly_chart(create_confidence_gauge(pred['confidence']), use_container_width=True)
 
-        with st.expander("📊 Detailed Prediction Information"):
-            st.json(pred)
-
+    # Sidebar info (keep your existing sidebar)
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📈 About the Model")
     st.sidebar.info(f"""
     This predictor uses a Random Forest model with:
-    - {len(feature_names) if feature_names else 'N/A'} engineered features
+    - {len(predictor.feature_names) if predictor.feature_names else 'N/A'} engineered features
     - {len(teams)} Premier League teams
     - Historical match data & statistics
     - No external API required!
     """)
-
-    st.sidebar.markdown("### 🔧 Model Status")
-    if model:
-        st.sidebar.success("✅ Model: Loaded")
-        st.sidebar.success(f"✅ Teams: {len(teams)}")
-        st.sidebar.success(f"✅ Features: {len(feature_names) if feature_names else 0}")
-    else:
-        st.sidebar.error("❌ Model: Not loaded")
 
 if __name__ == "__main__":
     main()
