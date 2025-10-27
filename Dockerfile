@@ -33,3 +33,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 
 # Run the application
 CMD ["python", "project/app/api/main.py"]
+# Run the API
+CMD ["python", "-m", "uvicorn", "project.app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -27,7 +27,7 @@ PNG_FALLBACKS = {
     "Chelsea": "https://upload.wikimedia.org/wikipedia/en/thumb/c/cc/Chelsea_FC.svg/240px-Chelsea_FC.svg.png",
     "Crystal Palace": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0c/Crystal_Palace_FC_logo.svg/240px-Crystal_Palace_FC_logo.svg.png",
     "Everton": "https://upload.wikimedia.org/wikipedia/en/thumb/7/7c/Everton_FC_logo.svg/240px-Everton_FC_logo.svg.png",
-    "Fulham": "https://upload.wikimedia.org/wikipedia/en/thumb/3/3e/Fulham_FC_%28shield%29.svg/240px-Fulham_FC_%28shield%29.svg.png",
+    "Fulham": "https://upload.wikimedia.org/wikipedia/en/thumb/3/3e/Fulham_FC_%28shield%29.svg/240px-Fulham_FC_%29shield%29.svg.png",
     "Leeds United": "https://upload.wikimedia.org/wikipedia/en/thumb/8/81/Leeds_United_F.C._logo.svg/240px-Leeds_United_F.C._logo.svg.png",
     "Leicester City": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2d/Leicester_City_crest.svg/240px-Leicester_City_crest.svg.png",
     "Liverpool": "https://upload.wikimedia.org/wikipedia/en/thumb/0/0c/Liverpool_FC.svg/240px-Liverpool_FC.svg.png",

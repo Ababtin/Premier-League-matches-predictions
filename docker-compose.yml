@@ -1,10 +1,6 @@
-version: '3.8'
-
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
       - "8000:8000"
     volumes:
@@ -18,7 +14,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    restart: unless-stopped
 
   streamlit:
     build:
@@ -31,8 +26,11 @@ services:
         condition: service_healthy
     environment:
       - API_URL=http://api:8000
-    restart: unless-stopped
-
-volumes:
-  models_data:
-  historical_data:
+    volumes:
+      - ./streamlit:/app/streamlit
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
