@@ -11,35 +11,8 @@ from pathlib import Path
 # =========================
 # Config
 # =========================
-#API_URL = os.getenv('API_URL', 'https://premier-league-matches-predictions-lewagon-project.streamlit.app/')
+API_URL = os.getenv('API_URL', 'https://premier-league-matches-predictions-lewagon-project.streamlit.app/')
 #API_URL = "http://localhost:8000"
-
-# Replace your API_URL line with this:
-
-# Try different possible URLs
-API_URLS_TO_TRY = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://0.0.0.0:8000",
-    "http://localhost:8080",
-    'https://premier-league-matches-predictions-lewagon-project.streamlit.app/'
-]
-
-def find_working_api_url():
-    """Find which API URL actually works"""
-    for url in API_URLS_TO_TRY:
-        try:
-            response = requests.get(f"{url}/health", timeout=2)
-            if response.status_code == 200:
-                st.success(f"✅ Found working API at: {url}")
-                return url
-        except:
-            continue
-    return None
-
-# Use this in your code:
-API_URL = find_working_api_url() or "http://localhost:8000"
-
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -384,39 +357,6 @@ def main():
 
 # Add this debug function after your imports
 
-def debug_api_response():
-    """Debug what the API is actually returning"""
-    try:
-        import requests
-        st.write("🔍 **API Debug Information:**")
-
-        # Test different endpoints
-        endpoints = ["/health", "/teams", "/"]
-
-        for endpoint in endpoints:
-            try:
-                url = f"{API_URL}{endpoint}"
-                st.write(f"Testing: {url}")
-
-                response = requests.get(url, timeout=5)
-                st.write(f"Status Code: {response.status_code}")
-                st.write(f"Headers: {dict(response.headers)}")
-                st.write(f"Raw Response: {response.text[:200]}...")  # First 200 chars
-
-                if response.headers.get('content-type', '').startswith('application/json'):
-                    try:
-                        json_data = response.json()
-                        st.write(f"JSON Data: {json_data}")
-                    except:
-                        st.write("Failed to parse as JSON")
-
-                st.write("---")
-
-            except Exception as e:
-                st.write(f"Error testing {endpoint}: {e}")
-
-    except Exception as e:
-        st.error(f"Debug function error: {e}")
 
 if __name__ == "__main__":
     main()
