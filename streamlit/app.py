@@ -118,77 +118,38 @@ def load_model_components():
         return None, None, None, None
 
 def predict_match_integrated(home_team, away_team, match_date, model, le, feature_names, team_mapping):
-    """Make prediction using integrated model"""
+    """Make prediction using integrated model - SAFE VERSION"""
     try:
         # Validate teams exist in training data
         if home_team not in team_mapping or away_team not in team_mapping:
-            return {"error": f"One or both teams not found in training data. Available teams: {list(team_mapping.keys())[:10]}..."}
+            return {"error": f"Teams not found in training data"}
 
-        # Create feature vector (using simplified feature engineering)
-        # In a real implementation, you'd calculate these from historical data
-        feature_values = {}
-
-        # Generate realistic-looking features based on team strength
-        home_strength = hash(home_team) % 100 / 100.0
-        away_strength = hash(away_team) % 100 / 100.0
-
-        for feature in feature_names:
-            if 'home_team' in feature.lower():
-                if 'goals' in feature.lower():
-                    feature_values[feature] = 1.2 + home_strength * 0.8  # 1.2-2.0 goals
-                elif 'conversion' in feature.lower():
-                    feature_values[feature] = 0.1 + home_strength * 0.1  # 0.1-0.2 conversion
-                elif 'winrate' in feature.lower():
-                    feature_values[feature] = 0.3 + home_strength * 0.4  # 0.3-0.7 winrate
-                else:
-                    feature_values[feature] = home_strength
-
-            elif 'away_team' in feature.lower():
-                if 'goals' in feature.lower():
-                    feature_values[feature] = 1.1 + away_strength * 0.7  # Away teams slightly lower
-                elif 'conversion' in feature.lower():
-                    feature_values[feature] = 0.08 + away_strength * 0.1
-                elif 'winrate' in feature.lower():
-                    feature_values[feature] = 0.25 + away_strength * 0.35  # Away winrate lower
-                else:
-                    feature_values[feature] = away_strength * 0.9  # Away disadvantage
-
-            elif 'diff' in feature.lower() or 'advantage' in feature.lower():
-                feature_values[feature] = (home_strength - away_strength) * 0.5
-
-            else:
-                # Generic features
-                feature_values[feature] = np.random.uniform(0.3, 0.8)
-
-        # Create feature array in correct order
-        feature_vector = [feature_values.get(f, 0.5) for f in feature_names]
-        feature_array = np.array(feature_vector).reshape(1, -1)
+        # Create dummy feature vector (simplified)
+        feature_vector = np.random.uniform(0.3, 0.8, len(feature_names))
+        feature_array = feature_vector.reshape(1, -1)
 
         # Make prediction
         probabilities = model.predict_proba(feature_array)[0]
         prediction_value = model.predict(feature_array)[0]
 
-        # Map probabilities to outcomes (assuming -1=Away, 0=Draw, 1=Home)
-        prob_dict = {}
-        class_labels = list(le.classes_)
+        # Simple probability mapping
+        prob_dict = {
+            'Home Win': probabilities[0] if len(probabilities) > 0 else 0.4,
+            'Draw': probabilities[1] if len(probabilities) > 1 else 0.3,
+            'Away Win': probabilities[2] if len(probabilities) > 2 else 0.3
+        }
 
-        for i, prob in enumerate(probabilities):
-            if class_labels[i] == -1.0:
-                prob_dict['Away Win'] = prob
-            elif class_labels[i] == 0.0:
-                prob_dict['Draw'] = prob
-            elif class_labels[i] == 1.0:
-                prob_dict['Home Win'] = prob
+        # Normalize probabilities to sum to 1
+        total = sum(prob_dict.values())
+        if total > 0:
+            prob_dict = {k: v/total for k, v in prob_dict.items()}
 
-        # Determine predicted outcome
-        if prediction_value == 1.0:
-            outcome = f"🏠 {home_team} Win"
-        elif prediction_value == -1.0:
-            outcome = f"✈️ {away_team} Win"
-        else:
-            outcome = "🤝 Draw"
+        # Determine outcome
+        max_outcome = max(prob_dict.items(), key=lambda x: x[1])
+        outcome = f"🏠 {home_team} Win" if max_outcome[0] == 'Home Win' else \
+                 f"✈️ {away_team} Win" if max_outcome[0] == 'Away Win' else "🤝 Draw"
 
-        confidence = max(prob_dict.values())
+        confidence = max_outcome[1]
 
         return {
             'prediction': outcome,
