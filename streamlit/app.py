@@ -11,8 +11,9 @@ from pathlib import Path
 # =========================
 # Config
 # =========================
+API_URL = "http://localhost:8000"
 API_URL = os.getenv('API_URL', 'https://premier-league-matches-predictions-lewagon-project.streamlit.app/')
-#API_URL = "http://localhost:8000"
+
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -354,8 +355,6 @@ def main():
     Predict: {API_URL}/predict
     Docs: {API_URL}/docs
     """)
-
-# Add this debug function after your imports
 
 
 if __name__ == "__main__":
