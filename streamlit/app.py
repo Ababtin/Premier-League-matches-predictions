@@ -12,6 +12,7 @@ from pathlib import Path
 # Config
 # =========================
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
+API_URL = "http://localhost:8000"
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -318,3 +319,40 @@ def main():
 
 if __name__ == "__main__":
     main()
+import streamlit as st
+import pandas as pd
+import joblib
+import json
+import numpy as np
+from datetime import datetime
+
+@st.cache_resource
+def load_model():
+    try:
+        # Load model directly in Streamlit
+        model = joblib.load('../models/rf_model.pkl')
+        le = joblib.load('../models/label_encoder.pkl')
+        with open('../models/feature_names.json', 'r') as f:
+            feature_names = json.load(f)
+        return model, le, feature_names
+    except:
+        st.error("Model files not found!")
+        return None, None, None
+
+def predict_match_local(home_team, away_team, model, le, feature_names):
+    # Your prediction logic here (copy from your API)
+    # ... prediction code ...
+    return {"prediction": "Home Win", "probabilities": {"Home": 0.6, "Draw": 0.3, "Away": 0.1}}
+
+# Main app
+st.title("⚽ Premier League Match Predictor")
+
+model, le, feature_names = load_model()
+
+if model is not None:
+    home_team = st.selectbox("Home Team", ["Arsenal", "Chelsea", "Liverpool"])
+    away_team = st.selectbox("Away Team", ["Arsenal", "Chelsea", "Liverpool"])
+
+    if st.button("Predict Match"):
+        result = predict_match_local(home_team, away_team, model, le, feature_names)
+        st.success(f"Prediction: {result['prediction']}")
