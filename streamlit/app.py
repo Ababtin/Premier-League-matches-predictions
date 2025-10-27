@@ -11,8 +11,35 @@ from pathlib import Path
 # =========================
 # Config
 # =========================
-API_URL = os.getenv('API_URL', 'https://premier-league-matches-predictions-lewagon-project.streamlit.app/')
+#API_URL = os.getenv('API_URL', 'https://premier-league-matches-predictions-lewagon-project.streamlit.app/')
 #API_URL = "http://localhost:8000"
+
+# Replace your API_URL line with this:
+
+# Try different possible URLs
+API_URLS_TO_TRY = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://0.0.0.0:8000",
+    "http://localhost:8080",
+    'https://premier-league-matches-predictions-lewagon-project.streamlit.app/'
+]
+
+def find_working_api_url():
+    """Find which API URL actually works"""
+    for url in API_URLS_TO_TRY:
+        try:
+            response = requests.get(f"{url}/health", timeout=2)
+            if response.status_code == 200:
+                st.success(f"✅ Found working API at: {url}")
+                return url
+        except:
+            continue
+    return None
+
+# Use this in your code:
+API_URL = find_working_api_url() or "http://localhost:8000"
+
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -138,15 +165,53 @@ st.markdown(
 # API helpers
 # =========================
 def get_teams():
+    """Get teams from API with better error handling"""
     try:
-        response = requests.get(f"{API_URL}/teams")
+        st.write(f"🔗 Trying to get teams from: {API_URL}/teams")
+
+        response = requests.get(f"{API_URL}/teams", timeout=10)
+
+        st.write(f"Response status: {response.status_code}")
+        st.write(f"Response headers: {response.headers}")
+        st.write(f"Raw response: {response.text[:100]}...")
+
         if response.status_code == 200:
-            return response.json()['teams']
+            try:
+                data = response.json()
+                st.write(f"Parsed JSON: {data}")
+
+                # Handle different possible response formats
+                if isinstance(data, dict):
+                    if 'teams' in data:
+                        return data['teams']
+                    elif 'data' in data:
+                        return data['data']
+                    else:
+                        # Maybe the teams are directly in the response
+                        return list(data.keys()) if data else []
+                elif isinstance(data, list):
+                    return data
+                else:
+                    st.error(f"Unexpected data format: {type(data)}")
+                    return []
+
+            except json.JSONDecodeError as e:
+                st.error(f"JSON decode error: {e}")
+                st.error(f"Response text: {response.text}")
+                return []
         else:
-            st.error(f"Failed to fetch teams: {response.status_code}")
+            st.error(f"HTTP {response.status_code}: {response.text}")
             return []
+
+    except requests.exceptions.ConnectionError:
+        st.error("🚨 Cannot connect to API. Is the FastAPI server running?")
+        st.info("Start the API with: `python project/app/api/main.py`")
+        return []
+    except requests.exceptions.Timeout:
+        st.error("⏰ API request timed out")
+        return []
     except Exception as e:
-        st.error(f"Error connecting to API: {e}")
+        st.error(f"Unexpected error: {e}")
         return []
 
 def check_api_health():
@@ -316,6 +381,42 @@ def main():
     Predict: {API_URL}/predict
     Docs: {API_URL}/docs
     """)
+
+# Add this debug function after your imports
+
+def debug_api_response():
+    """Debug what the API is actually returning"""
+    try:
+        import requests
+        st.write("🔍 **API Debug Information:**")
+
+        # Test different endpoints
+        endpoints = ["/health", "/teams", "/"]
+
+        for endpoint in endpoints:
+            try:
+                url = f"{API_URL}{endpoint}"
+                st.write(f"Testing: {url}")
+
+                response = requests.get(url, timeout=5)
+                st.write(f"Status Code: {response.status_code}")
+                st.write(f"Headers: {dict(response.headers)}")
+                st.write(f"Raw Response: {response.text[:200]}...")  # First 200 chars
+
+                if response.headers.get('content-type', '').startswith('application/json'):
+                    try:
+                        json_data = response.json()
+                        st.write(f"JSON Data: {json_data}")
+                    except:
+                        st.write("Failed to parse as JSON")
+
+                st.write("---")
+
+            except Exception as e:
+                st.write(f"Error testing {endpoint}: {e}")
+
+    except Exception as e:
+        st.error(f"Debug function error: {e}")
 
 if __name__ == "__main__":
     main()
