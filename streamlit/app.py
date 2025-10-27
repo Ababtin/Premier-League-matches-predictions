@@ -11,7 +11,7 @@ from pathlib import Path
 # =========================
 # Config
 # =========================
-API_URL = "http://localhost:8000"
+#API_URL = "http://localhost:8000"
 API_URL = os.getenv('API_URL', 'http://localhost:8000/')
 
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
