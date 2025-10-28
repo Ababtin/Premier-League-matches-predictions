@@ -19,7 +19,7 @@ ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
 # High-res PNG fallbacks (transparent if possible)
 # You can replace any of these with your own PNGs in assets/logos to override.
-PNG_FALLBACKS = {
+SVG_TEAMS = {
     "Arsenal": "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/240px-Arsenal_FC.svg.png",
     "Aston Villa": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Aston_Villa_FC_crest_%282016%29.svg/240px-Aston_Villa_FC_crest_%282016%29.svg.png",
     "Bournemouth": "https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/AFC_Bournemouth_%282013%29.svg/240px-AFC_Bournemouth_%282013%29.svg.png",
@@ -65,15 +65,14 @@ def get_logo_src(team: str) -> str:
     p = local_logo_path(team)
     if p.exists():
         return str(p.as_posix())
-    return PNG_FALLBACKS.get(team, PREMIER_LEAGUE_LOGO_FALLBACK)
+    return SVG_TEAMS.get(team, PREMIER_LEAGUE_LOGO_FALLBACK)
 
 def get_pl_logo_src() -> str:
     p = ASSETS_DIR / PREMIER_LEAGUE_LOGO
     return str(p.as_posix()) if p.exists() else PREMIER_LEAGUE_LOGO_FALLBACK
 
-# =========================
+
 # Page config & styles
-# =========================
 st.set_page_config(
     page_title="Premier League Match Predictor",
     page_icon="⚽",
@@ -141,18 +140,18 @@ st.markdown(
 def get_teams():
     """Get teams from API with better error handling"""
     try:
-        st.write(f"🔗 Trying to get teams from: {API_URL}/teams")
+       # st.write(f"🔗 Trying to get teams from: {API_URL}/teams")
 
         response = requests.get(f"{API_URL}/teams", timeout=10)
 
-        st.write(f"Response status: {response.status_code}")
-        st.write(f"Response headers: {response.headers}")
-        st.write(f"Raw response: {response.text[:100]}...")
+        #st.write(f"Response status: {response.status_code}")
+        #st.write(f"Response headers: {response.headers}")
+        #st.write(f"Raw response: {response.text[:100]}...")
 
         if response.status_code == 200:
             try:
                 data = response.json()
-                st.write(f"Parsed JSON: {data}")
+                #st.write(f"Parsed JSON: {data}")
 
                 # Handle different possible response formats
                 if isinstance(data, dict):
