@@ -1,24 +1,21 @@
-import streamlit as st
-import requests
+import os
+import time
 import json
+import requests
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
-from datetime import datetime, date
-import os
+import streamlit as st
+from datetime import date
 from pathlib import Path
 
 # =========================
 # Config
 # =========================
-#API_URL = "http://localhost:8000"
 API_URL = os.getenv('API_URL', 'https://premier-league-match-prediction-110499409425.europe-west1.run.app')
 
 ASSETS_DIR = Path(__file__).parent / "assets" / "logos"  # assets/logos/*.png
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-# High-res PNG fallbacks (transparent if possible)
-# You can replace any of these with your own PNGs in assets/logos to override.
 SVG_TEAMS = {
     "Arsenal": "https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Arsenal_FC.svg/240px-Arsenal_FC.svg.png",
     "Aston Villa": "https://upload.wikimedia.org/wikipedia/en/thumb/9/9f/Aston_Villa_FC_crest_%282016%29.svg/240px-Aston_Villa_FC_crest_%282016%29.svg.png",
@@ -52,16 +49,14 @@ SVG_TEAMS = {
     "Wolves": "https://upload.wikimedia.org/wikipedia/en/thumb/f/fc/Wolverhampton_Wanderers.svg/240px-Wolverhampton_Wanderers.svg.png",
 }
 
-PREMIER_LEAGUE_LOGO = "premier-league.png"   # place in assets/logos/
+PREMIER_LEAGUE_LOGO = "premier-league.png"
 PREMIER_LEAGUE_LOGO_FALLBACK = "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Premier_League_Logo.svg/240px-Premier_League_Logo.svg.png"
 
 def local_logo_path(team: str) -> Path:
-    # normalize file name: "manchester united" -> "manchester-united.png"
     fname = team.lower().replace("&", "and").replace(" ", "-") + ".png"
     return ASSETS_DIR / fname
 
 def get_logo_src(team: str) -> str:
-    """Return local PNG if present, else high-res PNG URL."""
     p = local_logo_path(team)
     if p.exists():
         return str(p.as_posix())
@@ -72,7 +67,9 @@ def get_pl_logo_src() -> str:
     return str(p.as_posix()) if p.exists() else PREMIER_LEAGUE_LOGO_FALLBACK
 
 
+# =========================
 # Page config & styles
+# =========================
 st.set_page_config(
     page_title="Premier League Match Predictor",
     page_icon="⚽",
@@ -96,21 +93,6 @@ st.markdown("""
         text-align: center;
         margin: 1rem 0;
     }
-    .metric-card {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 4px solid #1f77b4;
-        margin: 0.5rem 0;
-    }
-    .team-vs {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #e9eef5;
-        text-align: center;
-        margin: 1rem 0;
-    }
-    /* Top-left PL logo */
     .pl-logo {
         position: fixed;
         top: 10px;
@@ -119,7 +101,6 @@ st.markdown("""
         z-index: 9999;
         filter: drop-shadow(0 0 6px rgba(0,0,0,0.35));
     }
-    /* Subtle lift for all images */
     img {
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
@@ -128,54 +109,26 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Top-left Premier League logo (local if present)
-st.markdown(
-    f"<img class='pl-logo' src='{get_pl_logo_src()}' />",
-    unsafe_allow_html=True
-)
+st.markdown(f"<img class='pl-logo' src='{get_pl_logo_src()}' />", unsafe_allow_html=True)
 
 # =========================
 # API helpers
 # =========================
 def get_teams():
-    """Get teams from API with better error handling"""
     try:
-       # st.write(f"🔗 Trying to get teams from: {API_URL}/teams")
-
-        response = requests.get(f"{API_URL}/teams", timeout=10)
-
-        #st.write(f"Response status: {response.status_code}")
-        #st.write(f"Response headers: {response.headers}")
-        #st.write(f"Raw response: {response.text[:100]}...")
-
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                #st.write(f"Parsed JSON: {data}")
-
-                # Handle different possible response formats
-                if isinstance(data, dict):
-                    if 'teams' in data:
-                        return data['teams']
-                    elif 'data' in data:
-                        return data['data']
-                    else:
-                        # Maybe the teams are directly in the response
-                        return list(data.keys()) if data else []
-                elif isinstance(data, list):
-                    return data
-                else:
-                    st.error(f"Unexpected data format: {type(data)}")
-                    return []
-
-            except json.JSONDecodeError as e:
-                st.error(f"JSON decode error: {e}")
-                st.error(f"Response text: {response.text}")
-                return []
-        else:
-            st.error(f"HTTP {response.status_code}: {response.text}")
+        r = requests.get(f"{API_URL}/teams", timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if isinstance(data, dict):
+                if 'teams' in data: return data['teams']
+                if 'data'  in data: return data['data']
+                return list(data.keys()) if data else []
+            if isinstance(data, list): return data
+            st.error(f"Unexpected data format: {type(data)}")
             return []
-
+        else:
+            st.error(f"HTTP {r.status_code}: {r.text}")
+            return []
     except requests.exceptions.ConnectionError:
         st.error("🚨 Cannot connect to API. Is the FastAPI server running?")
         st.info("Start the API with: `python project/app/api/main.py`")
@@ -189,9 +142,9 @@ def get_teams():
 
 def check_api_health():
     try:
-        response = requests.get(f"{API_URL}/health")
-        return response.status_code == 200
-    except:
+        r = requests.get(f"{API_URL}/health", timeout=5)
+        return r.status_code == 200
+    except Exception:
         return False
 
 def predict_match(home_team, away_team, match_date):
@@ -201,58 +154,54 @@ def predict_match(home_team, away_team, match_date):
             "away_team": away_team,
             "match_date": match_date.strftime('%Y-%m-%d')
         }
-        response = requests.post(
+        r = requests.post(
             f"{API_URL}/predict",
             json=payload,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            timeout=15
         )
-        if response.status_code == 200:
-            return response.json()
+        if r.status_code == 200:
+            return r.json()
         else:
-            st.error(f"Prediction failed: {response.text}")
+            st.error(f"Prediction failed: {r.text}")
             return None
     except Exception as e:
         st.error(f"Error making prediction: {e}")
         return None
 
 # =========================
-# Charts
+# Gauge only (centered & bigger)
 # =========================
-def create_probability_chart(probabilities):
-    outcomes = list(probabilities.keys())
-    probs = [probabilities[o] * 100 for o in outcomes]
-    colors = ['#ff6b6b', '#feca57', '#48dbfb']
-    fig = go.Figure(data=[
-        go.Bar(x=outcomes, y=probs, marker_color=colors, text=[f'{p:.1f}%' for p in probs], textposition='auto')
-    ])
-    fig.update_layout(
-        title="Match Outcome Probabilities",
-        xaxis_title="Outcome", yaxis_title="Probability (%)",
-        showlegend=False, height=400,
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-    )
-    return fig
-
 def create_confidence_gauge(confidence):
     fig = go.Figure(go.Indicator(
         mode="gauge+number+delta",
         value=confidence * 100,
-        domain={'x':[0,1], 'y':[0,1]},
-        title={'text':"Prediction Confidence"},
-        delta={'reference':50},
+        title={'text': "Prediction Confidence"},
+        number={'font': {'size': 56}},                     
+        delta={
+            'reference': 50,
+            'position': 'bottom',
+            'increasing': {'color': '#21ba45'},
+            'decreasing': {'color': '#db2828'}
+        },
+        domain={'x': [0, 1], 'y': [0, 1]},
         gauge={
-            'axis': {'range':[None,100]},
+            'axis': {'range': [None, 100]},
             'bar': {'color': "darkblue"},
             'steps': [
-                {'range':[0,25], 'color':"lightgray"},
-                {'range':[25,50], 'color':"gray"},
-                {'range':[50,75], 'color':"lightgreen"},
-                {'range':[75,100], 'color':"green"},
+                {'range': [0, 25], 'color': "lightgray"},
+                {'range': [25, 50], 'color': "gray"},
+                {'range': [50, 75], 'color': "lightgreen"},
+                {'range': [75, 100], 'color': "green"},
             ],
-            'threshold': {'line':{'color':"red",'width':4}, 'thickness':0.75, 'value':90}
+            'threshold': {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': 90}
         }
     ))
-    fig.update_layout(height=300, paper_bgcolor='rgba(0,0,0,0)')
+    fig.update_layout(
+        height=460,
+        margin=dict(t=40, b=10, l=10, r=10),
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
     return fig
 
 # =========================
@@ -261,12 +210,22 @@ def create_confidence_gauge(confidence):
 def main():
     st.markdown('<h1 class="main-header">⚽ Premier League Match Predictor</h1>', unsafe_allow_html=True)
 
-    if not check_api_health():
+    # Connection banner
+    api_ok = check_api_health()
+    if not api_ok:
         st.error("🚨 API is not available! Please make sure the FastAPI server is running.")
         st.info("Run: `docker-compose up` or `python api/main.py`")
-        return
-    st.success("✅ Connected to API successfully!")
+        st.stop()
+    else:
+        now = time.time()
+        if "last_api_banner_ts" not in st.session_state or now - st.session_state["last_api_banner_ts"] > 20:
+            placeholder = st.empty()
+            placeholder.success("✅ Connected to API successfully!")
+            time.sleep(2.5)
+            placeholder.empty()
+            st.session_state["last_api_banner_ts"] = now
 
+    # Sidebar: match settings
     st.sidebar.header("🎯 Match Prediction Settings")
     teams = get_teams()
     if not teams:
@@ -288,37 +247,60 @@ def main():
         st.warning("⚠️ Please select different teams for home and away.")
         return
 
-    # VS banner with crisp PNGs
+    # ===== Expanders under Predict in sidebar =====
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("📈 About the Model", expanded=False):
+        st.markdown("""
+- **Model:** Random Forest Classifier
+- **Features:** 32+ engineered features (form, Elo ratings, head-to-head, home advantage, etc.)
+- **Data:** Historical Premier League matches
+- **Target:** 3-class outcome (Home Win / Draw / Away Win)
+- **Notes:** Calibrated probabilities with leakage checks on dates.
+        """)
+    with st.sidebar.expander("🔗 API Endpoints", expanded=False):
+        st.markdown(f"**Base URL:** `{API_URL}`")
+        st.code(f"""Health:  {API_URL}/health
+Teams:   {API_URL}/teams
+Predict: {API_URL}/predict
+Docs:    {API_URL}/docs
+""")
+        if st.button("🔄 Ping Health", key="ping_health_btn"):
+            try:
+                r = requests.get(f"{API_URL}/health", timeout=5)
+                st.success("✅ API is healthy." if r.status_code == 200 else f"⚠️ HTTP {r.status_code}")
+            except Exception as e:
+                st.error(f"❌ Could not reach health endpoint: {e}")
+
+    # VS banner (main content)
     st.markdown(f"""
     <div style='text-align:center; margin-top:8px;'>
         <img src='{get_logo_src(home_team)}' width='96' style='vertical-align:middle; margin-right:16px;'>
-        <b style='font-size:2rem;'>{home_team}</b>
-        <span style='font-size:2rem; margin:0 20px;'>🆚</span>
-        <b style='font-size:2rem;'>{away_team}</b>
+        <span style='font-size:2rem; margin:0 20px;'>{match_date}</span>
         <img src='{get_logo_src(away_team)}' width='96' style='vertical-align:middle; margin-left:16px;'>
     </div>
     """, unsafe_allow_html=True)
+    #st.markdown(f"**📅 Match Date:** {match_date.strftime('%B %d, %Y')}")
 
-    st.markdown(f"**📅 Match Date:** {match_date.strftime('%B %d, %Y')}")
-
+    # Predict
     if predict_button:
         with st.spinner("🤖 Making prediction..."):
             prediction = predict_match(home_team, away_team, match_date)
             if prediction:
                 st.session_state.prediction = prediction
 
+    # Results
     if 'prediction' in st.session_state:
         pred = st.session_state.prediction
         st.markdown(f"""
         <div class="prediction-card">
             <h2>🎯 Prediction Result</h2>
             <h1>{pred['prediction']}</h1>
-            <p>Confidence: {pred['confidence']*100:.1f}%</p>
         </div>
         """, unsafe_allow_html=True)
 
-        c1, c2, c3 = st.columns(3)
+        # === Metrics (Home / Draw / Away) ===
         probs = pred['probabilities']
+        c1, c2, c3 = st.columns(3)
         with c1:
             st.metric("🏠 Home Win", f"{probs['Home Win']*100:.1f}%",
                       delta=f"{(probs['Home Win']-0.33)*100:+.1f}%" if probs['Home Win'] != 0.33 else None)
@@ -329,32 +311,13 @@ def main():
             st.metric("✈️ Away Win", f"{probs['Away Win']*100:.1f}%",
                       delta=f"{(probs['Away Win']-0.33)*100:+.1f}%" if probs['Away Win'] != 0.33 else None)
 
-        g1, g2 = st.columns(2)
-        with g1:
-            st.plotly_chart(create_probability_chart(probs), use_container_width=True)
-        with g2:
+        # === Centered BIG Gauge (only) ===
+        left, mid, right = st.columns([1, 2, 1])
+        with mid:
             st.plotly_chart(create_confidence_gauge(pred['confidence']), use_container_width=True)
 
         with st.expander("📊 Detailed Prediction Information"):
             st.json(pred)
-
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 📈 About the Model")
-    st.sidebar.info("""
-    This predictor uses a Random Forest model trained on:
-    - 32+ engineered features
-    - Historical Premier League data
-    - Team statistics, Elo ratings, form, etc.
-    """)
-
-    st.sidebar.markdown("### 🔗 API Endpoints")
-    st.sidebar.code(f"""
-    Health: {API_URL}/health
-    Teams: {API_URL}/teams
-    Predict: {API_URL}/predict
-    Docs: {API_URL}/docs
-    """)
-
 
 if __name__ == "__main__":
     main()
