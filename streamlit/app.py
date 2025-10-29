@@ -177,7 +177,7 @@ def create_confidence_gauge(confidence):
         mode="gauge+number+delta",
         value=confidence * 100,
         title={'text': "Prediction Confidence"},
-        number={'font': {'size': 56}},                     
+        number={'font': {'size': 56}},
         delta={
             'reference': 50,
             'position': 'bottom',
